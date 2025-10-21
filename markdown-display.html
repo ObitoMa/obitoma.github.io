@@ -489,6 +489,22 @@
                             ">
                         </div>
                         
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">文章描述：</label>
+                            <textarea id="articleDescription" placeholder="输入文章描述，用于SEO优化..." style="
+                                width: 100%;
+                                padding: 10px;
+                                border: 2px solid #ddd;
+                                border-radius: 5px;
+                                font-size: 16px;
+                                box-sizing: border-box;
+                                min-height: 80px;
+                                resize: vertical;
+                                font-family: inherit;
+                            "></textarea>
+                            <small style="color: #666;">文章描述将添加到页面的 meta keywords 中，有助于SEO优化</small>
+                        </div>
+                        
                         <div style="text-align: right;">
                             <button onclick="closeCreateDialog()" style="
                                 background: #6c757d;
@@ -587,6 +603,7 @@
         function confirmCreateBlogPost() {
             const title = document.getElementById('articleTitle').value.trim();
             const date = document.getElementById('articleDate').value;
+            const description = document.getElementById('articleDescription').value.trim();
             
             if (!title) {
                 alert('请输入文章标题！');
@@ -594,7 +611,7 @@
             }
             
             // 生成文章 HTML
-            const articleHtml = generateArticleHtml(title, date, currentContent, tagList);
+            const articleHtml = generateArticleHtml(title, date, currentContent, tagList, description);
             
             // 创建文件夹结构并打包下载
             createArticlePackage(title, articleHtml);
@@ -672,9 +689,10 @@
         }
 
         // 生成文章 HTML
-        function generateArticleHtml(title, date, content, tags) {
+        function generateArticleHtml(title, date, content, tags, description = '') {
             const htmlContent = marked.parse(content);
             const tagsHtml = tags && tags.length > 0 ? tags.map(tag => `<span class="tag">${tag.trim()}</span>`).join('') : '';
+            const metaKeywords = description ? `    <meta name="keywords" content="${description.replace(/"/g, '&quot;')}" />` : '';
 
             return `<!DOCTYPE html>
 <html>
@@ -682,7 +700,7 @@
     <meta charset="utf-8">
     <title>${title} | Gridea</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/main.css">${metaKeywords}
   </head>
   <body>
     <div class="main">
