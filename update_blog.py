@@ -75,8 +75,8 @@ def scan_articles():
                 if article_info:
                     articles.append(article_info)
     
-    # 按日期排序（最新的在前）
-    articles.sort(key=lambda x: x['date'], reverse=True)
+    # 按日期排序（最新的在前），相同日期按文件名排序
+    articles.sort(key=lambda x: (x['date'], x['slug']), reverse=True)
     return articles
 
 def extract_article_info(html_file, article_slug):
@@ -343,12 +343,13 @@ def main():
     print(f"📖 找到 {len(articles)} 篇文章")
     
     # 显示文章信息
-    print("\n📋 文章信息:")
+    print("\n📋 文章信息 (按时间排序，最新的在前):")
     for i, article in enumerate(articles, 1):
         print(f"  {i}. {article['title']}")
         print(f"     日期: {article['date']}")
         print(f"     摘要: {article['abstract'][:100]}{'...' if len(article['abstract']) > 100 else ''}")
         print(f"     标签: {', '.join(article['tags']) if article['tags'] else '无'}")
+        print(f"     路径: {article['path']}")
         print()
     
     # 更新各个页面
