@@ -758,3 +758,79 @@ a {
   font-size: 16px;
   margin: 4px 8px;
 }
+
+/* Markdown 工具按钮样式 */
+.markdown-tools {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.markdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.markdown-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  color: white;
+  text-decoration: none;
+}
+
+.markdown-btn:active {
+  transform: translateY(0);
+}
+
+.markdown-btn .btn-icon {
+  font-size: 16px;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+.markdown-btn .btn-text {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+/* 按钮动画效果 */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 800px) {
+  .markdown-tools {
+    margin-top: 15px;
+  }
+  
+  .markdown-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .markdown-btn .btn-text {
+    font-size: 12px;
+  }
+}
