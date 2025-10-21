@@ -69,11 +69,25 @@ def scan_articles():
     
     for article_dir in post_dir.iterdir():
         if article_dir.is_dir():
+            # 检查直接包含 index.html 的情况
             index_file = article_dir / "index.html"
             if index_file.exists():
                 article_info = extract_article_info(index_file, article_dir.name)
                 if article_info:
                     articles.append(article_info)
+            else:
+                # 检查嵌套目录的情况
+                for sub_dir in article_dir.iterdir():
+                    if sub_dir.is_dir():
+                        nested_index = sub_dir / "index.html"
+                        if nested_index.exists():
+                            # 使用父目录名作为文章名
+                            article_info = extract_article_info(nested_index, article_dir.name)
+                            if article_info:
+                                # 更新路径为正确的嵌套路径
+                                article_info['path'] = f"./post/{article_dir.name}/{sub_dir.name}/"
+                                articles.append(article_info)
+                                print(f"📁 发现嵌套文章: {article_dir.name}/{sub_dir.name}")
     
     # 按日期排序（最新的在前），相同日期按文件名排序
     articles.sort(key=lambda x: (x['date'], x['slug']), reverse=True)
