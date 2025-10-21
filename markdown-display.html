@@ -596,19 +596,61 @@
             // 生成文章 HTML
             const articleHtml = generateArticleHtml(title, date, currentContent, tagList);
             
-            // 下载 HTML 文件
-            const blob = new Blob([articleHtml], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${title.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')}.html`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            // 创建文件夹结构并打包下载
+            createArticlePackage(title, articleHtml);
+        }
 
-            closeCreateDialog();
-            alert(`文章 "${title}" 已生成并下载！\n\n标签: ${tagList.join(', ') || '无'}\n\n请将 HTML 文件放到 post/ 目录下。`);
+        // 创建文章包
+        function createArticlePackage(title, articleHtml) {
+            // 创建文章目录名（URL 友好）
+            const articleSlug = title.toLowerCase()
+                .replace(/[^\w\s-]/g, '')  // 移除特殊字符
+                .replace(/\s+/g, '-')      // 空格替换为连字符
+                .replace(/-+/g, '-')       // 多个连字符合并为一个
+                .trim();
+            
+            // 创建 JSZip 实例
+            if (typeof JSZip === 'undefined') {
+                // 动态加载 JSZip 库
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                script.onload = () => {
+                    createZipWithJSZip(articleSlug, articleHtml);
+                };
+                document.head.appendChild(script);
+            } else {
+                createZipWithJSZip(articleSlug, articleHtml);
+            }
+        }
+
+        // 使用 JSZip 创建压缩包
+        function createZipWithJSZip(articleSlug, articleHtml) {
+            const zip = new JSZip();
+            
+            // 在压缩包中创建文件夹结构
+            const folder = zip.folder(articleSlug);
+            
+            // 添加 index.html 文件
+            folder.file('index.html', articleHtml);
+            
+            // 生成压缩包
+            zip.generateAsync({type: 'blob'}).then(function(content) {
+                // 下载压缩包
+                const url = URL.createObjectURL(content);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${articleSlug}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                closeCreateDialog();
+                alert(`文章包 "${articleSlug}.zip" 已生成并下载！\n\n包含文件：\n- ${articleSlug}/index.html\n\n解压后将 ${articleSlug} 文件夹放到 post/ 目录下即可。`);
+            }).catch(function(error) {
+                console.error('创建压缩包失败:', error);
+                alert('创建压缩包失败，请重试。');
+            });
         }
 
         // 提取标签
