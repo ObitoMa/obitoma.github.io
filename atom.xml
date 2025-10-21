@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
     <id>.</id>
-    <title>Gridea</title>
+    <title>带着泥土的博博客</title>
     <updated>2025-10-21T15:36:43.000Z</updated>
     <generator>https://github.com/jpmonette/feed</generator>
     <link rel="alternate" href="."/>
