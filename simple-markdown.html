@@ -113,6 +113,42 @@
             padding: 0 !important;
         }
         
+        /* 代码块复制按钮 */
+        .preview-content pre {
+            position: relative !important;
+        }
+        
+        .code-copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            z-index: 10;
+        }
+        
+        .preview-content pre:hover .code-copy-btn {
+            opacity: 1;
+        }
+        
+        .code-copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .code-copy-btn.copied {
+            background: #10b981;
+            border-color: #059669;
+            color: white;
+        }
+        
         /* 表格样式 */
         .preview-content table {
             width: 100% !important;
@@ -273,6 +309,8 @@ console.log('Hello World!');
                 if (window.Prism) {
                     Prism.highlightAll();
                 }
+                // 添加代码块复制按钮
+                addCopyButtons();
             } else {
                 preview.innerHTML = '<p style="color: #666; text-align: center; margin-top: 50px;">在左侧编辑器中输入内容，这里会显示实时预览</p>';
             }
@@ -731,6 +769,44 @@ function hello() {
 
         // 标签列表
         let tagList = [];
+
+        // 添加代码块复制按钮
+        function addCopyButtons() {
+            const codeBlocks = document.querySelectorAll('.preview-content pre');
+            codeBlocks.forEach(block => {
+                // 检查是否已经有复制按钮
+                if (block.querySelector('.code-copy-btn')) return;
+                
+                const button = document.createElement('button');
+                button.className = 'code-copy-btn';
+                button.textContent = '复制';
+                button.onclick = () => copyCode(block, button);
+                
+                block.appendChild(button);
+            });
+        }
+
+        // 复制代码功能
+        function copyCode(block, button) {
+            const code = block.querySelector('code');
+            const text = code ? code.textContent : block.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                button.textContent = '已复制';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = '复制';
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                button.textContent = '复制失败';
+                setTimeout(() => {
+                    button.textContent = '复制';
+                }, 2000);
+            });
+        }
 
         // 页面加载时初始化
         window.onload = function() {

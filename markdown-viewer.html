@@ -91,6 +91,42 @@
             color: inherit !important;
             padding: 0 !important;
         }
+        
+        /* 代码块复制按钮 */
+        .markdown-content pre {
+            position: relative !important;
+        }
+        
+        .code-copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            z-index: 10;
+        }
+        
+        .markdown-content pre:hover .code-copy-btn {
+            opacity: 1;
+        }
+        
+        .code-copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .code-copy-btn.copied {
+            background: #10b981;
+            border-color: #059669;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -182,6 +218,44 @@
             gfm: true
         });
 
+        // 添加代码块复制按钮
+        function addCopyButtons() {
+            const codeBlocks = document.querySelectorAll('.markdown-content pre');
+            codeBlocks.forEach(block => {
+                // 检查是否已经有复制按钮
+                if (block.querySelector('.code-copy-btn')) return;
+                
+                const button = document.createElement('button');
+                button.className = 'code-copy-btn';
+                button.textContent = '复制';
+                button.onclick = () => copyCode(block, button);
+                
+                block.appendChild(button);
+            });
+        }
+
+        // 复制代码功能
+        function copyCode(block, button) {
+            const code = block.querySelector('code');
+            const text = code ? code.textContent : block.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                button.textContent = '已复制';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = '复制';
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                button.textContent = '复制失败';
+                setTimeout(() => {
+                    button.textContent = '复制';
+                }, 2000);
+            });
+        }
+
         // 文件选择处理
         document.getElementById('fileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -252,6 +326,9 @@
             if (window.Prism) {
                 Prism.highlightAll();
             }
+            
+            // 添加代码块复制按钮
+            addCopyButtons();
             
             // 添加保存按钮
             addSaveButton(title, date, tags, markdownText);
