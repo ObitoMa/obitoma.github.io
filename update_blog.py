@@ -12,6 +12,52 @@ import datetime
 from pathlib import Path
 from collections import defaultdict
 
+def extract_abstract_from_content(content):
+    """从文章内容中智能提取摘要"""
+    try:
+        # 方法1: 尝试从现有的 post-abstract 中提取
+        abstract_match = re.search(r'<div class="post-abstract">.*?<p>(.+?)</p>', content, re.DOTALL)
+        if abstract_match:
+            abstract = abstract_match.group(1).strip()
+            if abstract and abstract != "暂无摘要":
+                return clean_html_tags(abstract)
+        
+        # 方法2: 从文章内容中提取第一段
+        # 查找第一个 <p> 标签
+        first_p_match = re.search(r'<div class="post-content">.*?<p>(.+?)</p>', content, re.DOTALL)
+        if first_p_match:
+            first_paragraph = first_p_match.group(1).strip()
+            if first_paragraph:
+                # 清理HTML标签
+                clean_text = clean_html_tags(first_paragraph)
+                # 限制长度
+                if len(clean_text) > 200:
+                    clean_text = clean_text[:200] + "..."
+                return clean_text
+        
+        # 方法3: 从meta keywords中提取
+        meta_match = re.search(r'<meta name="keywords" content="(.+?)"', content)
+        if meta_match:
+            meta_content = meta_match.group(1).strip()
+            if meta_content:
+                return clean_html_tags(meta_content)
+        
+        return "暂无摘要"
+    except Exception as e:
+        print(f"⚠️  提取摘要失败: {e}")
+        return "暂无摘要"
+
+def clean_html_tags(text):
+    """清理HTML标签"""
+    import html
+    # 解码HTML实体
+    text = html.unescape(text)
+    # 移除HTML标签
+    text = re.sub(r'<[^>]+>', '', text)
+    # 清理多余空白
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
 def scan_articles():
     """扫描所有文章"""
     articles = []
@@ -47,9 +93,8 @@ def extract_article_info(html_file, article_slug):
         date_match = re.search(r'<div class="post-date">(.+?)</div>', content)
         date = date_match.group(1) if date_match else datetime.datetime.now().strftime('%Y-%m-%d')
         
-        # 提取摘要
-        abstract_match = re.search(r'<div class="post-abstract">.*?<p>(.+?)</p>', content, re.DOTALL)
-        abstract = abstract_match.group(1).strip() if abstract_match else "暂无摘要"
+        # 提取摘要 - 优先从文章内容中提取第一段
+        abstract = extract_abstract_from_content(content)
         
         # 提取标签
         tags = []
@@ -75,6 +120,8 @@ def update_homepage(articles):
     # 生成文章列表HTML
     articles_html = ""
     for article in articles[:5]:  # 只显示最新5篇
+        # 清理摘要中的HTML实体
+        clean_abstract = article['abstract'].replace('&quot;', '"').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
         articles_html += f"""
             <article class="post-item">
               <div class="left">
@@ -85,7 +132,7 @@ def update_homepage(articles):
                   {article['date']}
                 </div>
                 <div class="post-abstract">
-                  <p>{article['abstract']}</p>
+                  <p>{clean_abstract}</p>
                 </div>
               </div>
             </article>
@@ -294,6 +341,15 @@ def main():
         return
     
     print(f"📖 找到 {len(articles)} 篇文章")
+    
+    # 显示文章信息
+    print("\n📋 文章信息:")
+    for i, article in enumerate(articles, 1):
+        print(f"  {i}. {article['title']}")
+        print(f"     日期: {article['date']}")
+        print(f"     摘要: {article['abstract'][:100]}{'...' if len(article['abstract']) > 100 else ''}")
+        print(f"     标签: {', '.join(article['tags']) if article['tags'] else '无'}")
+        print()
     
     # 更新各个页面
     update_homepage(articles)
