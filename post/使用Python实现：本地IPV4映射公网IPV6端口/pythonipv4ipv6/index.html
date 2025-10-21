@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>使用Python实现：本地IPV4映射公网IPV6端口 | 带着泥土的博博客</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../../styles/main.css">    <meta name="keywords" content="博主有一台白群晖，家庭宽带有公网IPV6地址。奇思妙想了一下想要把群晖本地的服务映射到群晖获取的公网IPV6地址。然后通过白群晖自带的DDNS就可以通过域名访问自建服务啦！" />
+  </head>
+  <body>
+    <div class="main">
+      <div class="sidebar">
+        <div class="top-container">
+          <div class="top-header-container">
+            <a class="site-title-container" href="/">
+              <img src="../../images/avatar.png?v=1659011765580" class="site-logo">
+              <h1 class="site-title">带着泥土的博博客</h1>
+            </a>
+          </div>
+          <div>
+            <a href="/" class="site-nav">首页</a>
+            <a href="/archives" class="site-nav">归档</a>
+            <a href="/tags" class="site-nav">标签</a>
+            <a href="/post/about" class="site-nav">关于</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="main-container">
+        <div class="content-container">
+          <div class="post-detail">
+            <h2 class="post-title">使用Python实现：本地IPV4映射公网IPV6端口</h2>
+            <div class="post-date">2025-10-21</div>
+            <div class="post-content">
+              <h3>背景：博主有一台白群晖，家庭宽带有公网IPV6地址。奇思妙想了一下想要把群晖本地的服务映射到群晖获取的公网IPV6地址。然后通过白群晖自带的DDNS就可以通过域名访问自建服务啦！</h3>
+<p>下面直接贴代码</p>
+<pre><code class="language-python">#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import socket
+import threading
+import argparse
+import sys
+import logging
+import netifaces
+import time
+
+# 配置日志
+logging.basicConfig(level=logging.DEBUG, format=&#39;%(asctime)s - %(levelname)s - %(message)s&#39;)
+logger = logging.getLogger(__name__)
+
+def get_ipv6_address():
+    &quot;&quot;&quot;获取本机的公网IPv6地址&quot;&quot;&quot;
+    try:
+        logger.info(&quot;正在检测IPv6地址...&quot;)
+        for interface in netifaces.interfaces():
+            addrs = netifaces.ifaddresses(interface)
+            if netifaces.AF_INET6 in addrs:
+                for addr in addrs[netifaces.AF_INET6]:
+                    # 排除本地链路地址和私有地址
+                    if &#39;addr&#39; in addr:
+                        addr_value = addr[&#39;addr&#39;].split(&#39;%&#39;)[0]  # 移除接口标识符
+                        if not addr_value.startswith((&#39;fe80:&#39;, &#39;fc00:&#39;, &#39;fd&#39;, &#39;::1&#39;)):
+                            logger.info(f&quot;在接口 {interface} 上找到公网IPv6地址: {addr_value}&quot;)
+                            return addr_value
+                        else:
+                            logger.debug(f&quot;跳过非公网IPv6地址: {addr_value} 在接口 {interface}&quot;)
+        
+        logger.warning(&quot;未找到公网IPv6地址&quot;)
+        # 如果没有找到公网地址，返回任何可用的IPv6地址(::)
+        logger.info(&quot;将使用通配符地址 &#39;::&#39;&quot;)
+        return &quot;::&quot;
+    except Exception as e:
+        logger.error(f&quot;获取IPv6地址失败: {e}&quot;)
+        logger.info(&quot;将使用通配符地址 &#39;::&#39;&quot;)
+        return &quot;::&quot;
+
+class PortForwarder:
+    def __init__(self, local_ipv4, local_port, ipv6_addr, ipv6_port):
+        self.local_ipv4 = local_ipv4
+        self.local_port = local_port
+        self.ipv6_addr = ipv6_addr
+        self.ipv6_port = ipv6_port
+        self.running = False
+        self.threads = []
+
+    def handle_client(self, client_socket, client_addr):
+        &quot;&quot;&quot;处理客户端连接并转发数据&quot;&quot;&quot;
+        logger.info(f&quot;接收来自 {client_addr} 的连接&quot;)
+
+        try:
+            # 创建到本地IPv4服务的连接
+            local_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            local_socket.settimeout(10)  # 设置连接超时
+            logger.debug(f&quot;尝试连接本地服务 {self.local_ipv4}:{self.local_port}&quot;)
+            local_socket.connect((self.local_ipv4, self.local_port))
+            logger.debug(f&quot;成功连接到本地服务 {self.local_ipv4}:{self.local_port}&quot;)
+            
+            # 创建两个线程用于双向转发数据
+            t1 = threading.Thread(target=self.forward_data, 
+                                 args=(client_socket, local_socket, f&quot;IPv6客户端-&gt;本地服务&quot;))
+            t2 = threading.Thread(target=self.forward_data, 
+                                 args=(local_socket, client_socket, f&quot;本地服务-&gt;IPv6客户端&quot;))
+            
+            t1.daemon = True
+            t2.daemon = True
+            
+            t1.start()
+            t2.start()
+            
+            t1.join()
+            t2.join()
+            
+        except ConnectionRefusedError:
+            logger.error(f&quot;连接被拒绝: {self.local_ipv4}:{self.local_port}，请确认本地服务是否正在运行&quot;)
+        except socket.timeout:
+            logger.error(f&quot;连接本地服务超时: {self.local_ipv4}:{self.local_port}&quot;)
+        except Exception as e:
+            logger.error(f&quot;连接本地服务失败: {e}&quot;)
+        finally:
+            try:
+                client_socket.close()
+            except:
+                pass
+
+    def forward_data(self, src_socket, dst_socket, direction):
+        &quot;&quot;&quot;转发数据&quot;&quot;&quot;
+        buffer_size = 8192  # 增大缓冲区
+        try:
+            src_socket.settimeout(300)  # 5分钟无数据传输超时
+            bytes_count = 0
+            while self.running:
+                try:
+                    data = src_socket.recv(buffer_size)
+                    if not data:
+                        logger.debug(f&quot;{direction}: 连接关闭&quot;)
+                        break
+                    
+                    bytes_count += len(data)
+                    if bytes_count % (buffer_size * 10) == 0:  # 每传输约80KB记录一次
+                        logger.debug(f&quot;{direction}: 已传输 {bytes_count} 字节&quot;)
+                    
+                    dst_socket.sendall(data)
+                except socket.timeout:
+                    logger.debug(f&quot;{direction}: 数据接收超时&quot;)
+                    break
+        except Exception as e:
+            if self.running:
+                logger.error(f&quot;{direction}: 数据转发错误: {e}&quot;)
+        finally:
+            try:
+                logger.debug(f&quot;{direction}: 关闭连接，共传输 {bytes_count} 字节&quot;)
+                src_socket.close()
+                dst_socket.close()
+            except:
+                pass
+
+    def start(self):
+        &quot;&quot;&quot;启动端口转发服务&quot;&quot;&quot;
+        self.running = True
+        
+        # 创建IPv6监听套接字
+        try:
+            server = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            
+            # 尝试绑定地址和端口
+            try:
+                logger.debug(f&quot;尝试绑定到 [{self.ipv6_addr}]:{self.ipv6_port}&quot;)
+                server.bind((self.ipv6_addr, self.ipv6_port, 0, 0))
+                logger.info(f&quot;成功绑定到 [{self.ipv6_addr}]:{self.ipv6_port}&quot;)
+            except socket.error as e:
+                if self.ipv6_addr != &quot;::&quot;:
+                    logger.warning(f&quot;绑定到特定IPv6地址失败: {e}&quot;)
+                    logger.info(&quot;尝试使用通配符地址 &#39;::&#39;&quot;)
+                    self.ipv6_addr = &quot;::&quot;
+                    server.bind((self.ipv6_addr, self.ipv6_port, 0, 0))
+                    logger.info(f&quot;成功绑定到 [::](所有IPv6接口):{self.ipv6_port}&quot;)
+                else:
+                    raise
+            
+            server.listen(5)
+            logger.info(f&quot;IPv6端口转发服务启动: [{self.ipv6_addr}]:{self.ipv6_port} -&gt; {self.local_ipv4}:{self.local_port}&quot;)
+            logger.info(&quot;等待IPv6客户端连接...&quot;)
+            
+            # 创建测试连接的线程
+            if self.local_ipv4 == &quot;127.0.0.1&quot; or self.local_ipv4 == &quot;localhost&quot;:
+                test_thread = threading.Thread(target=self.test_local_service)
+                test_thread.daemon = True
+                test_thread.start()
+            
+            while self.running:
+                try:
+                    client_socket, addr = server.accept()
+                    client_thread = threading.Thread(target=self.handle_client, args=(client_socket, addr))
+                    client_thread.daemon = True
+                    client_thread.start()
+                    self.threads.append(client_thread)
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    logger.error(f&quot;接受连接时发生错误: {e}&quot;)
+                    if not self.running:
+                        break
+                
+        except KeyboardInterrupt:
+            logger.info(&quot;接收到中断信号，正在关闭服务...&quot;)
+        except Exception as e:
+            logger.error(f&quot;服务器错误: {e}&quot;)
+        finally:
+            self.stop()
+            server.close()
+    
+    def test_local_service(self):
+        &quot;&quot;&quot;测试本地服务是否可用&quot;&quot;&quot;
+        time.sleep(1)  # 等待服务器完全启动
+        logger.info(f&quot;正在测试本地服务 {self.local_ipv4}:{self.local_port} 是否可访问...&quot;)
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(5)
+            result = s.connect_ex((self.local_ipv4, self.local_port))
+            if result == 0:
+                logger.info(f&quot;本地服务 {self.local_ipv4}:{self.local_port} 可正常访问&quot;)
+            else:
+                logger.warning(f&quot;本地服务 {self.local_ipv4}:{self.local_port} 不可访问 (错误码: {result})&quot;)
+                logger.warning(&quot;请确保本地服务已启动，否则转发将无法工作&quot;)
+        except Exception as e:
+            logger.warning(f&quot;测试本地服务时发生错误: {e}&quot;)
+        finally:
+            s.close()
+
+    def stop(self):
+        &quot;&quot;&quot;停止端口转发服务&quot;&quot;&quot;
+        self.running = False
+        for thread in self.threads:
+            if thread.is_alive():
+                thread.join(1)
+        logger.info(&quot;端口转发服务已停止&quot;)
+
+def main():
+    parser = argparse.ArgumentParser(description=&#39;IPv4到IPv6端口转发工具&#39;)
+    parser.add_argument(&#39;--local-ip&#39;, type=str, default=&#39;127.0.0.1&#39;, help=&#39;本地IPv4地址，默认为127.0.0.1&#39;)
+    parser.add_argument(&#39;--local-port&#39;, type=int, required=True, help=&#39;本地IPv4端口&#39;)
+    parser.add_argument(&#39;--ipv6&#39;, type=str, help=&#39;监听的IPv6地址，如不指定则自动获取&#39;)
+    parser.add_argument(&#39;--ipv6-port&#39;, type=int, required=True, help=&#39;IPv6监听端口&#39;)
+    parser.add_argument(&#39;--debug&#39;, action=&#39;store_true&#39;, help=&#39;启用详细调试日志&#39;)
+    
+    args = parser.parse_args()
+    
+    # 设置日志级别
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    # 如果未指定IPv6地址，则自动获取
+    ipv6_addr = args.ipv6
+    if not ipv6_addr:
+        ipv6_addr = get_ipv6_address()
+    
+    forwarder = PortForwarder(args.local_ip, args.local_port, ipv6_addr, args.ipv6_port)
+    
+    try:
+        forwarder.start()
+    except KeyboardInterrupt:
+        forwarder.stop()
+        sys.exit(0)
+
+if __name__ == &quot;__main__&quot;:
+    main() 
+</code></pre>
+<p>就使用了一个库</p>
+<pre><code class="language-bash"># vim requirements.txt
+netifaces&gt;=0.11.0 
+</code></pre>
+<p>运行代码</p>
+<pre><code class="language-bash">(venv) root@Synology:/volume1/obitoma/v4tov6# python ipv4_to_ipv6_port_forwarder.py --local-port 22 --ipv6-port 10022
+2025-04-23 11:11:17,370 - INFO - 正在检测IPv6地址...
+2025-04-23 11:11:17,371 - DEBUG - 跳过非公网IPv6地址: ::1 在接口 lo
+2025-04-23 11:11:17,371 - INFO - 在接口 ovs_eth0 上找到公网IPv6地址: 2409:8a20:xxx:xxx:xxxx:d0ff:fe1f:xxxx
+2025-04-23 11:11:17,371 - DEBUG - 尝试绑定到 [2409:8a20:xxx:xxx:xxxx:d0ff:fe1f:xxxx]:10022
+2025-04-23 11:11:17,372 - INFO - 成功绑定到 [2409:8a20:xxx:xxx:xxxx:d0ff:fe1f:xxxx]:10022
+2025-04-23 11:11:17,372 - INFO - IPv6端口转发服务启动: [2409:8a20:xxx:xxx:xxxx:d0ff:fe1f:xxxx]:10022 -&gt; 127.0.0.1:22
+2025-04-23 11:11:17,372 - INFO - 等待IPv6客户端连接...
+2025-04-23 11:11:18,373 - INFO - 正在测试本地服务 127.0.0.1:22 是否可访问...
+2025-04-23 11:11:18,374 - INFO - 本地服务 127.0.0.1:22 可正常访问
+2025-04-23 11:11:31,862 - INFO - 接收来自 (&#39;2409:8a20:xxx:xxx:xxxx:d0ff:fe1f:xxxx&#39;, 55734, 0, 0) 的连接
+2025-04-23 11:11:31,863 - DEBUG - 尝试连接本地服务 127.0.0.1:22
+2025-04-23 11:11:31,863 - DEBUG - 成功连接到本地服务 127.0.0.1:22
+2025-04-23 11:13:31,892 - DEBUG - 本地服务-&gt;IPv6客户端: 连接关闭
+2025-04-23 11:13:31,892 - DEBUG - 本地服务-&gt;IPv6客户端: 关闭连接，共传输 1513 字节
+2025-04-23 11:15:12,285 - ERROR - IPv6客户端-&gt;本地服务: 数据转发错误: [Errno 9] Bad file descriptor
+2025-04-23 11:15:12,285 - DEBUG - IPv6客户端-&gt;本地服务: 关闭连接，共传输 1605 字节
+2025-04-23 11:18:29,388 - INFO - 接收来自 (&#39;2409:8a20:xxx:xxx:xxxx:d0ff:fe1f:xxxx&#39;, 57183, 0, 0) 的连接
+2025-04-23 11:18:29,389 - DEBUG - 尝试连接本地服务 127.0.0.1:22
+2025-04-23 11:18:29,389 - DEBUG - 成功连接到本地服务 127.0.0.1:22
+2025-04-23 11:19:24,365 - DEBUG - IPv6客户端-&gt;本地服务: 连接关闭
+2025-04-23 11:19:24,365 - DEBUG - IPv6客户端-&gt;本地服务: 关闭连接，共传输 4181 字节
+2025-04-23 11:19:24,367 - ERROR - 本地服务-&gt;IPv6客户端: 数据转发错误: [Errno 9] Bad file descriptor
+2025-04-23 11:19:24,367 - DEBUG - 本地服务-&gt;IPv6客户端: 关闭连接，共传输 7885 字节
+</code></pre>
+
+            </div>
+            <div class="tag-container"><span class="tag">python</span><span class="tag">群辉</span><span class="tag">network</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
