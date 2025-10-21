@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>python3实现：进程遇Error定时重启 | Gridea</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../../styles/main.css">
+  </head>
+  <body>
+    <div class="main">
+      <div class="sidebar">
+        <div class="top-container">
+          <div class="top-header-container">
+            <a class="site-title-container" href="/">
+              <img src="../../images/avatar.png?v=1659011765580" class="site-logo">
+              <h1 class="site-title">Gridea</h1>
+            </a>
+          </div>
+          <div>
+            <a href="/" class="site-nav">首页</a>
+            <a href="/archives" class="site-nav">归档</a>
+            <a href="/tags" class="site-nav">标签</a>
+            <a href="/post/about" class="site-nav">关于</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="main-container">
+        <div class="content-container">
+          <div class="post-detail">
+            <h2 class="post-title">python3实现：进程遇Error定时重启</h2>
+            <div class="post-date">2025-10-21</div>
+            <div class="post-content">
+              <pre><code class="language-python">import os
+import time
+
+
+# 停止HFish
+def stopHFish():
+	# while True:
+	try:
+		# 找到HFish进程号
+		HFish_id = int(os.popen(&quot;pgrep HFish&quot;).read().strip())
+		# 沙了
+		os.popen(&#39;kill -9 &#39;+ str(HFish_id))
+		print(&quot;HFish已关闭&quot;)
+
+	except:
+		print(&quot;进程不存在&quot;)
+# 启动HFish
+def startHFish():
+	HFish_st_re = os.system(&#39;nohup ./HFish run &gt; out.log 2&gt;&amp;1 &amp;&#39;)
+	time.sleep(5)
+
+# 重启HFish
+def restartHFish():
+	stopHFish()
+	print(&#39;%s HFish停止成功！&#39; % time.strftime(&#39;%Y-%m-%d %H:%M:%S&#39;, time.localtime(time.time())))
+	startHFish()
+	print(&#39;%s HFish重启成功！&#39; % time.strftime(&#39;%Y-%m-%d %H:%M:%S&#39;, time.localtime(time.time())))
+
+# 查询日志文件中是否有error关键字
+def finderror():
+	reached = False
+	log_str = open(&#39;/opt/hfish/out.log&#39;, &#39;r&#39;).read()
+	if &#39;runtime error&#39; in log_str:
+		reached = True
+	else:
+		reached = False
+	return reached
+
+if __name__ == &#39;__main__&#39;:
+	while True:
+		restartHFish()
+		# 定时查看日志中是否存在error
+		while finderror() == False:
+			time.sleep(5)
+</code></pre>
+
+            </div>
+            <div class="tag-container"><span class="tag">python</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
