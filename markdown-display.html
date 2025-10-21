@@ -674,7 +674,7 @@
         // 生成文章 HTML
         function generateArticleHtml(title, date, content, tags) {
             const htmlContent = marked.parse(content);
-            const tagsHtml = tags ? tags.split(',').map(tag => `<span class="tag">${tag.trim()}</span>`).join('') : '';
+            const tagsHtml = tags && tags.length > 0 ? tags.map(tag => `<span class="tag">${tag.trim()}</span>`).join('') : '';
 
             return `<!DOCTYPE html>
 <html>
