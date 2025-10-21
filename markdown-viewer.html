@@ -6,6 +6,9 @@
     <title>Markdown 文章查看器</title>
     <link rel="stylesheet" href="./styles/main.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <style>
         .markdown-container {
             max-width: 800px;
@@ -51,6 +54,42 @@
             text-align: center;
             padding: 20px;
             color: #666;
+        }
+        
+        /* 代码块样式优化 */
+        .markdown-content pre {
+            background: #2d3748 !important;
+            color: #e2e8f0 !important;
+            padding: 1.5rem !important;
+            border-radius: 8px !important;
+            overflow-x: auto !important;
+            margin: 1.5rem 0 !important;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace !important;
+            font-size: 14px !important;
+            line-height: 1.5 !important;
+            font-weight: 400 !important;
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+        
+        .markdown-content code {
+            background: #f1f5f9 !important;
+            color: #e11d48 !important;
+            padding: 0.2rem 0.4rem !important;
+            border-radius: 4px !important;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace !important;
+            font-size: 0.9em !important;
+            font-weight: 400 !important;
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+        
+        .markdown-content pre code {
+            background: transparent !important;
+            color: inherit !important;
+            padding: 0 !important;
         }
     </style>
 </head>
@@ -134,8 +173,10 @@
         // 配置 marked 选项
         marked.setOptions({
             highlight: function(code, lang) {
-                // 简单的代码高亮
-                return '<pre><code class="language-' + lang + '">' + code + '</code></pre>';
+                if (lang && Prism.languages[lang]) {
+                    return Prism.highlight(code, Prism.languages[lang], lang);
+                }
+                return code;
             },
             breaks: true,
             gfm: true
@@ -206,6 +247,11 @@
             // 渲染内容
             const htmlContent = marked.parse(markdownText);
             document.getElementById('articleBody').innerHTML = htmlContent;
+            
+            // 高亮代码块
+            if (window.Prism) {
+                Prism.highlightAll();
+            }
             
             // 添加保存按钮
             addSaveButton(title, date, tags, markdownText);

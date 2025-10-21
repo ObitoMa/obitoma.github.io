@@ -74,10 +74,14 @@
             border-radius: 8px !important;
             overflow-x: auto !important;
             margin: 1.5rem 0 !important;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace !important;
             font-size: 14px !important;
             line-height: 1.5 !important;
             border: none !important;
+            font-weight: 400 !important;
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
         }
         
         .article-content code {
@@ -85,8 +89,12 @@
             color: #e11d48 !important;
             padding: 0.2rem 0.4rem !important;
             border-radius: 4px !important;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Source Code Pro', monospace !important;
             font-size: 0.9em !important;
+            font-weight: 400 !important;
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
         }
         
         .article-content pre code {
@@ -403,14 +411,190 @@
 
         // 创建博客文章
         function createBlogPost() {
-            const title = prompt('请输入文章标题:', extractTitle());
-            if (!title) return;
+            showCreateDialog();
+        }
 
-            const tags = prompt('请输入标签（用逗号分隔）:', '');
-            const date = new Date().toISOString().split('T')[0];
+        // 显示创建对话框
+        function showCreateDialog() {
+            const title = extractTitle();
+            const existingTags = extractTags();
+            
+            const dialogHtml = `
+                <div id="createDialog" style="
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 1000;
+                ">
+                    <div style="
+                        background: white;
+                        padding: 30px;
+                        border-radius: 10px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                        max-width: 500px;
+                        width: 90%;
+                        max-height: 80vh;
+                        overflow-y: auto;
+                    ">
+                        <h3 style="margin-top: 0; color: #333;">📝 创建博客文章</h3>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">文章标题：</label>
+                            <input type="text" id="articleTitle" value="${title}" style="
+                                width: 100%;
+                                padding: 10px;
+                                border: 2px solid #ddd;
+                                border-radius: 5px;
+                                font-size: 16px;
+                                box-sizing: border-box;
+                            ">
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">标签：</label>
+                            <div style="margin-bottom: 10px;">
+                                <input type="text" id="tagInput" placeholder="输入标签后按回车添加" style="
+                                    width: 100%;
+                                    padding: 10px;
+                                    border: 2px solid #ddd;
+                                    border-radius: 5px;
+                                    font-size: 16px;
+                                    box-sizing: border-box;
+                                ">
+                                <small style="color: #666;">用逗号分隔多个标签，或按回车逐个添加</small>
+                            </div>
+                            <div id="tagList" style="
+                                display: flex;
+                                flex-wrap: wrap;
+                                gap: 5px;
+                                margin-bottom: 10px;
+                            "></div>
+                        </div>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">发布日期：</label>
+                            <input type="date" id="articleDate" value="${new Date().toISOString().split('T')[0]}" style="
+                                width: 100%;
+                                padding: 10px;
+                                border: 2px solid #ddd;
+                                border-radius: 5px;
+                                font-size: 16px;
+                                box-sizing: border-box;
+                            ">
+                        </div>
+                        
+                        <div style="text-align: right;">
+                            <button onclick="closeCreateDialog()" style="
+                                background: #6c757d;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 5px;
+                                margin-right: 10px;
+                                cursor: pointer;
+                            ">取消</button>
+                            <button onclick="confirmCreateBlogPost()" style="
+                                background: #007bff;
+                                color: white;
+                                border: none;
+                                padding: 10px 20px;
+                                border-radius: 5px;
+                                cursor: pointer;
+                            ">创建文章</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', dialogHtml);
+            
+            // 初始化标签
+            if (existingTags.length > 0) {
+                existingTags.forEach(tag => addTag(tag));
+            }
+            
+            // 绑定事件
+            document.getElementById('tagInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const tag = this.value.trim();
+                    if (tag) {
+                        addTag(tag);
+                        this.value = '';
+                    }
+                }
+            });
+            
+            document.getElementById('tagInput').addEventListener('blur', function() {
+                const tags = this.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+                tags.forEach(tag => addTag(tag));
+                this.value = '';
+            });
+        }
 
+        // 添加标签
+        function addTag(tag) {
+            if (!tag || tagList.includes(tag)) return;
+            
+            tagList.push(tag);
+            updateTagDisplay();
+        }
+
+        // 移除标签
+        function removeTag(tag) {
+            const index = tagList.indexOf(tag);
+            if (index > -1) {
+                tagList.splice(index, 1);
+                updateTagDisplay();
+            }
+        }
+
+        // 更新标签显示
+        function updateTagDisplay() {
+            const tagListDiv = document.getElementById('tagList');
+            tagListDiv.innerHTML = tagList.map(tag => `
+                <span style="
+                    background: #007bff;
+                    color: white;
+                    padding: 5px 10px;
+                    border-radius: 15px;
+                    font-size: 14px;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                ">
+                    ${tag}
+                    <span onclick="removeTag('${tag}')" style="cursor: pointer; font-weight: bold;">×</span>
+                </span>
+            `).join('');
+        }
+
+        // 关闭对话框
+        function closeCreateDialog() {
+            const dialog = document.getElementById('createDialog');
+            if (dialog) {
+                dialog.remove();
+            }
+        }
+
+        // 确认创建文章
+        function confirmCreateBlogPost() {
+            const title = document.getElementById('articleTitle').value.trim();
+            const date = document.getElementById('articleDate').value;
+            
+            if (!title) {
+                alert('请输入文章标题！');
+                return;
+            }
+            
             // 生成文章 HTML
-            const articleHtml = generateArticleHtml(title, date, currentContent, tags);
+            const articleHtml = generateArticleHtml(title, date, currentContent, tagList);
             
             // 下载 HTML 文件
             const blob = new Blob([articleHtml], { type: 'text/html' });
@@ -423,8 +607,21 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            alert(`文章 "${title}" 已生成并下载！\n\n请将 HTML 文件放到 post/ 目录下。`);
+            closeCreateDialog();
+            alert(`文章 "${title}" 已生成并下载！\n\n标签: ${tagList.join(', ') || '无'}\n\n请将 HTML 文件放到 post/ 目录下。`);
         }
+
+        // 提取标签
+        function extractTags() {
+            const tagMatch = currentContent.match(/^tags?:\s*(.+)$/im);
+            if (tagMatch) {
+                return tagMatch[1].split(',').map(tag => tag.trim()).filter(tag => tag);
+            }
+            return [];
+        }
+
+        // 标签列表
+        let tagList = [];
 
         // 提取标题
         function extractTitle() {
