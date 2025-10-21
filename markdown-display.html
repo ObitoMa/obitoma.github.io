@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 文章展示</title>
+    <link rel="stylesheet" href="./styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .markdown-display {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: #e6f3ff;
+        }
+        .upload-area.dragover {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+        .article-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        .file-info {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .actions {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="main">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="top-container">
+                <div class="top-header-container">
+                    <a class="site-title-container" href="/">
+                        <img src="./images/avatar.png?v=1659011765580" class="site-logo">
+                        <h1 class="site-title">Gridea</h1>
+                    </a>
+                </div>
+                <div>
+                    <a href="/" class="site-nav">首页</a>
+                    <a href="/archives" class="site-nav">归档</a>
+                    <a href="/tags" class="site-nav">标签</a>
+                    <a href="/post/about" class="site-nav">关于</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-container">
+            <div class="content-container">
+                <div class="markdown-display">
+                    <h1>📄 Markdown 文章展示</h1>
+                    
+                    <!-- 文件上传区域 -->
+                    <div class="upload-area" id="uploadArea">
+                        <div>
+                            <h3>📁 拖拽 Markdown 文件到这里</h3>
+                            <p>或者 <strong>点击选择文件</strong></p>
+                            <p style="color: #666; font-size: 14px;">支持 .md 和 .markdown 文件</p>
+                        </div>
+                        <input type="file" id="fileInput" accept=".md,.markdown" style="display: none;">
+                    </div>
+
+                    <!-- 文件信息 -->
+                    <div id="fileInfo" class="file-info" style="display: none;">
+                        <strong>📄 当前文件：</strong><span id="fileName"></span><br>
+                        <strong>📅 大小：</strong><span id="fileSize"></span><br>
+                        <strong>🕒 最后修改：</strong><span id="fileDate"></span>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div id="actions" class="actions" style="display: none;">
+                        <button class="btn btn-primary" onclick="downloadMarkdown()">📥 下载</button>
+                        <button class="btn btn-success" onclick="copyContent()">📋 复制</button>
+                        <button class="btn btn-info" onclick="createBlogPost()">🌐 创建博客文章</button>
+                    </div>
+
+                    <!-- 文章内容 -->
+                    <div id="articleContent" class="article-content" style="display: none;">
+                        <div id="renderedContent"></div>
+                    </div>
+
+                    <!-- 使用说明 -->
+                    <div id="instructions">
+                        <h3>🚀 使用方法</h3>
+                        <ol>
+                            <li><strong>选择文件</strong>：点击上方区域或直接拖拽 Markdown 文件</li>
+                            <li><strong>自动渲染</strong>：文件会立即转换为美观的网页格式</li>
+                            <li><strong>保存文章</strong>：使用下方按钮保存或复制内容</li>
+                        </ol>
+                        
+                        <h3>✨ 支持的功能</h3>
+                        <ul>
+                            <li>✅ 标题、段落、列表</li>
+                            <li>✅ 粗体、斜体、删除线</li>
+                            <li>✅ 链接和图片</li>
+                            <li>✅ 代码块和行内代码</li>
+                            <li>✅ 表格和引用</li>
+                            <li>✅ 任务列表</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const actions = document.getElementById('actions');
+        const articleContent = document.getElementById('articleContent');
+        const instructions = document.getElementById('instructions');
+        const renderedContent = document.getElementById('renderedContent');
+
+        let currentFile = null;
+        let currentContent = '';
+
+        // 配置 marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            tables: true,
+            sanitize: false
+        });
+
+        // 点击上传区域
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // 文件选择
+        fileInput.addEventListener('change', handleFile);
+
+        // 拖拽处理
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile({ target: { files: files } });
+            }
+        });
+
+        // 处理文件
+        function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+                alert('请选择 .md 或 .markdown 文件');
+                return;
+            }
+
+            currentFile = file;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentContent = e.target.result;
+                displayFile();
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // 显示文件
+        function displayFile() {
+            // 显示文件信息
+            document.getElementById('fileName').textContent = currentFile.name;
+            document.getElementById('fileSize').textContent = formatFileSize(currentFile.size);
+            document.getElementById('fileDate').textContent = new Date(currentFile.lastModified).toLocaleString();
+            
+            // 渲染内容
+            const html = marked.parse(currentContent);
+            renderedContent.innerHTML = html;
+
+            // 显示所有元素
+            fileInfo.style.display = 'block';
+            actions.style.display = 'block';
+            articleContent.style.display = 'block';
+            instructions.style.display = 'none';
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 下载 Markdown
+        function downloadMarkdown() {
+            const blob = new Blob([currentContent], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentFile.name;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 复制内容
+        function copyContent() {
+            navigator.clipboard.writeText(currentContent).then(() => {
+                alert('内容已复制到剪贴板！');
+            }).catch(() => {
+                // 降级方案
+                const textArea = document.createElement('textarea');
+                textArea.value = currentContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                alert('内容已复制到剪贴板！');
+            });
+        }
+
+        // 创建博客文章
+        function createBlogPost() {
+            const title = prompt('请输入文章标题:', extractTitle());
+            if (!title) return;
+
+            const tags = prompt('请输入标签（用逗号分隔）:', '');
+            const date = new Date().toISOString().split('T')[0];
+
+            // 生成文章 HTML
+            const articleHtml = generateArticleHtml(title, date, currentContent, tags);
+            
+            // 下载 HTML 文件
+            const blob = new Blob([articleHtml], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${title.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-')}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert(`文章 "${title}" 已生成并下载！\n\n请将 HTML 文件放到 post/ 目录下。`);
+        }
+
+        // 提取标题
+        function extractTitle() {
+            const titleMatch = currentContent.match(/^# (.+)$/m);
+            return titleMatch ? titleMatch[1] : currentFile.name.replace(/\.(md|markdown)$/, '');
+        }
+
+        // 生成文章 HTML
+        function generateArticleHtml(title, date, content, tags) {
+            const htmlContent = marked.parse(content);
+            const tagsHtml = tags ? tags.split(',').map(tag => `<span class="tag">${tag.trim()}</span>`).join('') : '';
+
+            return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>${title} | Gridea</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../../styles/main.css">
+  </head>
+  <body>
+    <div class="main">
+      <div class="sidebar">
+        <div class="top-container">
+          <div class="top-header-container">
+            <a class="site-title-container" href="/">
+              <img src="../../images/avatar.png?v=1659011765580" class="site-logo">
+              <h1 class="site-title">Gridea</h1>
+            </a>
+          </div>
+          <div>
+            <a href="/" class="site-nav">首页</a>
+            <a href="/archives" class="site-nav">归档</a>
+            <a href="/tags" class="site-nav">标签</a>
+            <a href="/post/about" class="site-nav">关于</a>
+          </div>
+        </div>
+      </div>
+      
+      <div class="main-container">
+        <div class="content-container">
+          <div class="post-detail">
+            <h2 class="post-title">${title}</h2>
+            <div class="post-date">${date}</div>
+            <div class="post-content">
+              ${htmlContent}
+            </div>
+            ${tagsHtml ? `<div class="tag-container">${tagsHtml}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`;
+        }
+    </script>
+</body>
+</html>

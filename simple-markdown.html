@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单 Markdown 编辑器</title>
+    <link rel="stylesheet" href="./styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .editor-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .editor-layout {
+            display: flex;
+            gap: 20px;
+            height: 80vh;
+        }
+        .editor-panel, .preview-panel {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .panel-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+        }
+        .editor-textarea {
+            width: 100%;
+            height: calc(100% - 40px);
+            border: none;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+        }
+        .preview-content {
+            height: calc(100% - 40px);
+            padding: 15px;
+            overflow-y: auto;
+            background: white;
+        }
+        .toolbar {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .toolbar button {
+            margin: 0 5px;
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .toolbar button:hover {
+            background: #f8f9fa;
+        }
+        .save-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .sample-content {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="main">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="top-container">
+                <div class="top-header-container">
+                    <a class="site-title-container" href="/">
+                        <img src="./images/avatar.png?v=1659011765580" class="site-logo">
+                        <h1 class="site-title">Gridea</h1>
+                    </a>
+                </div>
+                <div>
+                    <a href="/" class="site-nav">首页</a>
+                    <a href="/archives" class="site-nav">归档</a>
+                    <a href="/tags" class="site-nav">标签</a>
+                    <a href="/post/about" class="site-nav">关于</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-container">
+            <div class="content-container">
+                <div class="editor-container">
+                    <h1>✍️ 简单 Markdown 编辑器</h1>
+                    
+                    <!-- 工具栏 -->
+                    <div class="toolbar">
+                        <button onclick="insertText('# 标题')">标题</button>
+                        <button onclick="insertText('**粗体**')">粗体</button>
+                        <button onclick="insertText('*斜体*')">斜体</button>
+                        <button onclick="insertText('[链接](http://example.com)')">链接</button>
+                        <button onclick="insertText('![图片](image.jpg)')">图片</button>
+                        <button onclick="insertText('- 列表项')">列表</button>
+                        <button onclick="insertText('```\n代码\n```')">代码</button>
+                        <button onclick="clearEditor()">清空</button>
+                        <button onclick="loadSample()">示例</button>
+                    </div>
+
+                    <!-- 编辑器布局 -->
+                    <div class="editor-layout">
+                        <!-- 编辑面板 -->
+                        <div class="editor-panel">
+                            <div class="panel-header">📝 编辑 Markdown</div>
+                            <textarea id="markdownEditor" class="editor-textarea" placeholder="在这里输入您的 Markdown 内容...
+
+示例：
+# 我的文章标题
+
+这是一段**粗体**和*斜体*文本。
+
+## 二级标题
+
+- 列表项 1
+- 列表项 2
+
+[这是一个链接](https://example.com)
+
+```javascript
+console.log('Hello World!');
+```"></textarea>
+                        </div>
+
+                        <!-- 预览面板 -->
+                        <div class="preview-panel">
+                            <div class="panel-header">👁️ 实时预览</div>
+                            <div id="previewContent" class="preview-content">
+                                <p style="color: #666; text-align: center; margin-top: 50px;">
+                                    在左侧编辑器中输入内容，这里会显示实时预览
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 保存区域 -->
+                    <div class="save-section">
+                        <h3>💾 保存选项</h3>
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <button onclick="downloadMarkdown()" style="background: #28a745; color: white;">
+                                📥 下载为 .md 文件
+                            </button>
+                            <button onclick="copyToClipboard()" style="background: #17a2b8; color: white;">
+                                📋 复制到剪贴板
+                            </button>
+                            <button onclick="saveAsBlogPost()" style="background: #007bff; color: white;">
+                                🌐 保存为博客文章
+                            </button>
+                        </div>
+                        
+                        <div class="sample-content">
+                            <h4>📚 快速开始</h4>
+                            <p>点击"示例"按钮加载示例内容，或者直接在左侧编辑器中输入您的 Markdown 内容。</p>
+                            <p>右侧会实时显示渲染后的效果。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置 marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+
+        const editor = document.getElementById('markdownEditor');
+        const preview = document.getElementById('previewContent');
+
+        // 实时预览
+        editor.addEventListener('input', function() {
+            updatePreview();
+        });
+
+        // 更新预览
+        function updatePreview() {
+            const markdownText = editor.value;
+            if (markdownText.trim()) {
+                preview.innerHTML = marked.parse(markdownText);
+            } else {
+                preview.innerHTML = '<p style="color: #666; text-align: center; margin-top: 50px;">在左侧编辑器中输入内容，这里会显示实时预览</p>';
+            }
+        }
+
+        // 插入文本
+        function insertText(text) {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = editor.value.substring(start, end);
+            const newText = text.replace('SELECTED', selectedText);
+            
+            editor.value = editor.value.substring(0, start) + newText + editor.value.substring(end);
+            editor.focus();
+            editor.setSelectionRange(start + newText.length, start + newText.length);
+            updatePreview();
+        }
+
+        // 清空编辑器
+        function clearEditor() {
+            if (confirm('确定要清空编辑器吗？')) {
+                editor.value = '';
+                updatePreview();
+            }
+        }
+
+        // 加载示例
+        function loadSample() {
+            const sampleContent = `# 欢迎使用 Markdown 编辑器
+
+这是一个**示例文章**，展示了 Markdown 的基本用法。
+
+## 文本格式
+
+- **粗体文本**
+- *斜体文本*
+- ~~删除线~~
+- \`行内代码\`
+
+## 链接和图片
+
+[访问 GitHub](https://github.com)
+
+![示例图片](https://via.placeholder.com/300x200?text=示例图片)
+
+## 代码块
+
+\`\`\`javascript
+function hello() {
+    console.log("Hello, World!");
+}
+\`\`\`
+
+## 列表
+
+### 无序列表
+- 项目 1
+- 项目 2
+  - 子项目 2.1
+  - 子项目 2.2
+
+### 有序列表
+1. 第一步
+2. 第二步
+3. 第三步
+
+## 引用
+
+> 这是一个引用块
+> 
+> 可以包含多行内容
+
+## 表格
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| 数据1 | 数据2 | 数据3 |
+| 数据4 | 数据5 | 数据6 |
+
+---
+
+**享受写作的乐趣！** ✨`;
+
+            editor.value = sampleContent;
+            updatePreview();
+        }
+
+        // 下载 Markdown 文件
+        function downloadMarkdown() {
+            const content = editor.value;
+            if (!content.trim()) {
+                alert('编辑器为空，请先输入内容');
+                return;
+            }
+
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'article.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard() {
+            const content = editor.value;
+            if (!content.trim()) {
+                alert('编辑器为空，请先输入内容');
+                return;
+            }
+
+            navigator.clipboard.writeText(content).then(() => {
+                alert('内容已复制到剪贴板！');
+            }).catch(() => {
+                // 降级方案
+                editor.select();
+                document.execCommand('copy');
+                alert('内容已复制到剪贴板！');
+            });
+        }
+
+        // 保存为博客文章
+        function saveAsBlogPost() {
+            const content = editor.value;
+            if (!content.trim()) {
+                alert('编辑器为空，请先输入内容');
+                return;
+            }
+
+            const title = prompt('请输入文章标题:', '我的新文章');
+            if (!title) return;
+
+            const tags = prompt('请输入标签（用逗号分隔）:', '');
+            const date = new Date().toISOString().split('T')[0];
+
+            // 这里可以调用 Python 脚本或直接生成 HTML
+            alert(`文章信息：
+标题: ${title}
+日期: ${date}
+标签: ${tags || '无'}
+内容长度: ${content.length} 字符
+
+请使用 create_article_template.py 脚本或手动创建文章。`);
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            updatePreview();
+        };
+    </script>
+</body>
+</html>

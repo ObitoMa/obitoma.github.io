@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 文章查看器</title>
+    <link rel="stylesheet" href="./styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .markdown-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .markdown-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .file-selector {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .file-input {
+            padding: 10px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #f9f9f9;
+        }
+        .file-input:hover {
+            border-color: #007bff;
+            background: #f0f8ff;
+        }
+        .article-list {
+            margin: 20px 0;
+        }
+        .article-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .article-item:hover {
+            background: #e9ecef;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="main">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="top-container">
+                <div class="top-header-container">
+                    <a class="site-title-container" href="/">
+                        <img src="./images/avatar.png?v=1659011765580" class="site-logo">
+                        <h1 class="site-title">Gridea</h1>
+                    </a>
+                </div>
+                <div>
+                    <a href="/" class="site-nav">首页</a>
+                    <a href="/archives" class="site-nav">归档</a>
+                    <a href="/tags" class="site-nav">标签</a>
+                    <a href="/post/about" class="site-nav">关于</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-container">
+            <div class="content-container">
+                <div class="markdown-container">
+                    <h1>📝 Markdown 文章查看器</h1>
+                    
+                    <!-- 文件选择器 -->
+                    <div class="file-selector">
+                        <div class="file-input" onclick="document.getElementById('fileInput').click()">
+                            <p>📁 点击选择 Markdown 文件</p>
+                            <p style="font-size: 14px; color: #666;">支持 .md 和 .markdown 文件</p>
+                        </div>
+                        <input type="file" id="fileInput" accept=".md,.markdown" style="display: none;">
+                    </div>
+
+                    <!-- 文章列表 -->
+                    <div class="article-list" id="articleList" style="display: none;">
+                        <h3>📚 最近查看的文章</h3>
+                        <div id="recentArticles"></div>
+                    </div>
+
+                    <!-- 加载状态 -->
+                    <div class="loading" id="loading" style="display: none;">
+                        <p>🔄 正在加载文章...</p>
+                    </div>
+
+                    <!-- Markdown 内容 -->
+                    <div class="markdown-content" id="markdownContent" style="display: none;">
+                        <div id="articleTitle"></div>
+                        <div id="articleMeta"></div>
+                        <div id="articleBody"></div>
+                    </div>
+
+                    <!-- 使用说明 -->
+                    <div id="instructions">
+                        <h3>🚀 使用方法</h3>
+                        <ol>
+                            <li><strong>选择文件</strong>：点击上方区域选择您的 Markdown 文件</li>
+                            <li><strong>自动渲染</strong>：文件会自动转换为美观的网页格式</li>
+                            <li><strong>保存文章</strong>：如果满意，可以点击"保存为博客文章"按钮</li>
+                        </ol>
+                        
+                        <h3>✨ 特性</h3>
+                        <ul>
+                            <li>✅ 支持标准 Markdown 语法</li>
+                            <li>✅ 代码高亮显示</li>
+                            <li>✅ 表格和列表支持</li>
+                            <li>✅ 图片和链接支持</li>
+                            <li>✅ 响应式设计</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置 marked 选项
+        marked.setOptions({
+            highlight: function(code, lang) {
+                // 简单的代码高亮
+                return '<pre><code class="language-' + lang + '">' + code + '</code></pre>';
+            },
+            breaks: true,
+            gfm: true
+        });
+
+        // 文件选择处理
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
+                loadMarkdownFile(file);
+            } else {
+                alert('请选择 .md 或 .markdown 文件');
+            }
+        });
+
+        // 加载 Markdown 文件
+        function loadMarkdownFile(file) {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('markdownContent');
+            const instructions = document.getElementById('instructions');
+            
+            loading.style.display = 'block';
+            content.style.display = 'none';
+            instructions.style.display = 'none';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const markdownText = e.target.result;
+                renderMarkdown(markdownText, file.name);
+                
+                // 保存到最近查看列表
+                saveToRecent(file.name, markdownText);
+                
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // 渲染 Markdown
+        function renderMarkdown(markdownText, filename) {
+            // 提取标题
+            const titleMatch = markdownText.match(/^# (.+)$/m);
+            const title = titleMatch ? titleMatch[1] : filename.replace(/\.(md|markdown)$/, '');
+            
+            // 提取标签
+            const tagsMatch = markdownText.match(/^tags?:\s*(.+)$/im);
+            const tags = tagsMatch ? tagsMatch[1].split(',').map(tag => tag.trim()) : [];
+            
+            // 提取日期
+            const dateMatch = markdownText.match(/^date:\s*(.+)$/im);
+            const date = dateMatch ? dateMatch[1] : new Date().toISOString().split('T')[0];
+            
+            // 渲染标题
+            document.getElementById('articleTitle').innerHTML = '<h1>' + title + '</h1>';
+            
+            // 渲染元信息
+            let metaHtml = '<div class="post-date">' + date + '</div>';
+            if (tags.length > 0) {
+                metaHtml += '<div class="tag-container">';
+                tags.forEach(tag => {
+                    metaHtml += '<span class="tag">' + tag + '</span>';
+                });
+                metaHtml += '</div>';
+            }
+            document.getElementById('articleMeta').innerHTML = metaHtml;
+            
+            // 渲染内容
+            const htmlContent = marked.parse(markdownText);
+            document.getElementById('articleBody').innerHTML = htmlContent;
+            
+            // 添加保存按钮
+            addSaveButton(title, date, tags, markdownText);
+        }
+
+        // 添加保存按钮
+        function addSaveButton(title, date, tags, markdownText) {
+            const saveButton = document.createElement('div');
+            saveButton.innerHTML = `
+                <div style="margin-top: 30px; text-align: center;">
+                    <button onclick="saveAsBlogPost('${title}', '${date}', '${tags.join(',')}', \`${markdownText.replace(/`/g, '\\`')}\`)" 
+                            style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                        💾 保存为博客文章
+                    </button>
+                </div>
+            `;
+            document.getElementById('articleBody').appendChild(saveButton);
+        }
+
+        // 保存为博客文章
+        function saveAsBlogPost(title, date, tags, markdownText) {
+            // 这里可以调用之前创建的 Python 脚本
+            alert('功能开发中...\n\n您可以：\n1. 复制文章内容\n2. 使用 create_article_template.py 脚本\n3. 手动创建文章');
+        }
+
+        // 保存到最近查看
+        function saveToRecent(filename, content) {
+            let recent = JSON.parse(localStorage.getItem('recentArticles') || '[]');
+            recent.unshift({
+                name: filename,
+                content: content.substring(0, 200) + '...',
+                timestamp: new Date().toISOString()
+            });
+            recent = recent.slice(0, 5); // 只保留最近5个
+            localStorage.setItem('recentArticles', JSON.stringify(recent));
+            updateRecentList();
+        }
+
+        // 更新最近查看列表
+        function updateRecentList() {
+            const recent = JSON.parse(localStorage.getItem('recentArticles') || '[]');
+            const container = document.getElementById('recentArticles');
+            
+            if (recent.length > 0) {
+                document.getElementById('articleList').style.display = 'block';
+                container.innerHTML = recent.map(article => 
+                    `<div class="article-item" onclick="loadRecentArticle('${article.name}')">
+                        <strong>${article.name}</strong><br>
+                        <small>${article.content}</small>
+                    </div>`
+                ).join('');
+            }
+        }
+
+        // 加载最近文章
+        function loadRecentArticle(filename) {
+            const recent = JSON.parse(localStorage.getItem('recentArticles') || '[]');
+            const article = recent.find(a => a.name === filename);
+            if (article) {
+                // 这里需要重新获取完整内容，简化处理
+                alert('请重新选择文件以查看完整内容');
+            }
+        }
+
+        // 页面加载时更新最近查看列表
+        window.onload = function() {
+            updateRecentList();
+        };
+    </script>
+</body>
+</html>
