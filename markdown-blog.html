@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 博客 | 带着泥土的博博客</title>
+    <link rel="stylesheet" href="./styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <style>
+        .blog-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .article-list {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .article-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .article-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .article-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .article-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .article-excerpt {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .article-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .tag {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        
+        .article-content {
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .article-content h1, .article-content h2, .article-content h3 {
+            color: #333;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        
+        .article-content h1 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        
+        .article-content pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+        
+        .article-content code {
+            background: #f1f5f9;
+            color: #e11d48;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+        }
+        
+        .article-content pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        
+        /* 代码块复制按钮 */
+        .article-content pre {
+            position: relative !important;
+        }
+        
+        .code-copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            z-index: 10;
+        }
+        
+        .article-content pre:hover .code-copy-btn {
+            opacity: 1;
+        }
+        
+        .code-copy-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .code-copy-btn.copied {
+            background: #10b981;
+            border-color: #059669;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #dc3545;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        
+        .back-btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="main">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="top-container">
+                <div class="top-header-container">
+                    <a class="site-title-container" href="/">
+                        <img src="./images/avatar.png?v=1659011765580" class="site-logo">
+                        <h1 class="site-title">带着泥土的博博客</h1>
+                    </a>
+                </div>
+                <div>
+                    <a href="/" class="site-nav">首页</a>
+                    <a href="/archives" class="site-nav">归档</a>
+                    <a href="/tags" class="site-nav">标签</a>
+                    <a href="/post/about" class="site-nav">关于</a>
+                </div>
+            </div>
+            <div class="bottom-container">
+                <div class="social-container">
+                </div>
+                <div class="site-description">
+                    温故而知新
+                </div>
+                <div class="site-footer">
+                    Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="./atom.xml" target="_blank">RSS</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="main-container">
+            <div class="content-container">
+                <div id="blogContent">
+                    <div class="loading">正在加载文章列表...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置 marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            highlight: function(code, lang) {
+                if (lang && Prism.languages[lang]) {
+                    return Prism.highlight(code, Prism.languages[lang], lang);
+                }
+                return code;
+            }
+        });
+
+        // 文章列表
+        let articles = [];
+        let currentArticle = null;
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadArticleList();
+        });
+
+        // 加载文章列表
+        async function loadArticleList() {
+            try {
+                const response = await fetch('./post/');
+                if (!response.ok) {
+                    throw new Error('无法访问 post 目录');
+                }
+                
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // 查找 Markdown 文件链接
+                const links = doc.querySelectorAll('a[href$=".md"], a[href$=".markdown"]');
+                articles = Array.from(links).map(link => ({
+                    name: link.textContent.trim(),
+                    url: link.href
+                }));
+                
+                if (articles.length === 0) {
+                    document.getElementById('blogContent').innerHTML = 
+                        '<div class="error">没有找到 Markdown 文件</div>';
+                    return;
+                }
+                
+                // 显示文章列表
+                displayArticleList();
+                
+            } catch (error) {
+                console.error('加载文章列表失败:', error);
+                document.getElementById('blogContent').innerHTML = 
+                    '<div class="error">加载文章列表失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 显示文章列表
+        function displayArticleList() {
+            const html = `
+                <h2>📚 文章列表</h2>
+                <div class="article-list">
+                    ${articles.map(article => `
+                        <div class="article-card" onclick="loadArticle('${article.url}')">
+                            <div class="article-title">${article.name}</div>
+                            <div class="article-meta">
+                                <span>📄 Markdown 文件</span>
+                            </div>
+                            <div class="article-excerpt">
+                                点击查看文章内容
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('blogContent').innerHTML = html;
+        }
+
+        // 加载单个文章
+        async function loadArticle(url) {
+            try {
+                document.getElementById('blogContent').innerHTML = 
+                    '<div class="loading">正在加载文章...</div>';
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('无法加载文章');
+                }
+                
+                const markdown = await response.text();
+                
+                // 解析 front matter
+                const frontMatter = parseFrontMatter(markdown);
+                const content = markdown.split('---').slice(2).join('---').trim();
+                
+                // 渲染 Markdown
+                const htmlContent = marked.parse(content);
+                
+                // 显示文章
+                const articleHtml = `
+                    <a href="javascript:void(0)" onclick="loadArticleList()" class="back-btn">← 返回列表</a>
+                    <div class="article-content">
+                        ${frontMatter.title ? `<h1>${frontMatter.title}</h1>` : ''}
+                        ${frontMatter.date ? `<div class="article-meta">📅 ${frontMatter.date}</div>` : ''}
+                        ${frontMatter.tags ? `
+                            <div class="article-tags">
+                                ${frontMatter.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        ${htmlContent}
+                    </div>
+                `;
+                
+                document.getElementById('blogContent').innerHTML = articleHtml;
+                
+                // 添加代码块复制按钮
+                addCopyButtons();
+                
+            } catch (error) {
+                console.error('加载文章失败:', error);
+                document.getElementById('blogContent').innerHTML = 
+                    '<div class="error">加载文章失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 解析 front matter
+        function parseFrontMatter(content) {
+            if (!content.startsWith('---')) {
+                return {};
+            }
+            
+            const endMarker = content.indexOf('---', 3);
+            if (endMarker === -1) {
+                return {};
+            }
+            
+            const frontMatterText = content.substring(3, endMarker).trim();
+            const frontMatter = {};
+            
+            frontMatterText.split('\n').forEach(line => {
+                const colonIndex = line.indexOf(':');
+                if (colonIndex > 0) {
+                    const key = line.substring(0, colonIndex).trim();
+                    let value = line.substring(colonIndex + 1).trim();
+                    
+                    // 处理数组格式
+                    if (value.startsWith('[') && value.endsWith(']')) {
+                        const arrayContent = value.slice(1, -1);
+                        if (arrayContent.trim()) {
+                            frontMatter[key] = arrayContent.split(',').map(item => item.trim());
+                        } else {
+                            frontMatter[key] = [];
+                        }
+                    } else {
+                        // 移除引号
+                        if ((value.startsWith('"') && value.endsWith('"')) || 
+                            (value.startsWith("'") && value.endsWith("'"))) {
+                            value = value.slice(1, -1);
+                        }
+                        frontMatter[key] = value;
+                    }
+                }
+            });
+            
+            return frontMatter;
+        }
+
+        // 添加代码块复制按钮
+        function addCopyButtons() {
+            const codeBlocks = document.querySelectorAll('.article-content pre');
+            codeBlocks.forEach(block => {
+                if (block.querySelector('.code-copy-btn')) return;
+                
+                const button = document.createElement('button');
+                button.className = 'code-copy-btn';
+                button.textContent = '复制';
+                button.onclick = () => copyCode(block, button);
+                
+                block.appendChild(button);
+            });
+        }
+
+        // 复制代码功能
+        function copyCode(block, button) {
+            const code = block.querySelector('code');
+            const text = code ? code.textContent : block.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                button.textContent = '已复制';
+                button.classList.add('copied');
+                
+                setTimeout(() => {
+                    button.textContent = '复制';
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                button.textContent = '复制失败';
+                setTimeout(() => {
+                    button.textContent = '复制';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

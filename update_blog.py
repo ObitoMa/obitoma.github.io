@@ -67,6 +67,15 @@ def scan_articles():
         print("❌ post 目录不存在")
         return articles
     
+    # 扫描 Markdown 文件
+    markdown_files = list(post_dir.glob("*.md")) + list(post_dir.glob("*.markdown"))
+    for md_file in markdown_files:
+        article_info = extract_markdown_info(md_file)
+        if article_info:
+            articles.append(article_info)
+            print(f"📄 发现 Markdown 文章: {md_file.name}")
+    
+    # 扫描 HTML 文件（兼容旧格式）
     for article_dir in post_dir.iterdir():
         if article_dir.is_dir():
             # 检查直接包含 index.html 的情况
@@ -92,6 +101,107 @@ def scan_articles():
     # 按日期排序（最新的在前），相同日期按文件名排序
     articles.sort(key=lambda x: (x['date'], x['slug']), reverse=True)
     return articles
+
+def extract_markdown_info(md_file):
+    """从 Markdown 文件中提取文章信息"""
+    try:
+        with open(md_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 解析 YAML front matter
+        front_matter = parse_front_matter(content)
+        
+        if not front_matter:
+            print(f"⚠️  {md_file.name} 没有找到 front matter，跳过")
+            return None
+        
+        # 生成文章 slug（URL 友好）
+        title = front_matter.get('title', md_file.stem)
+        slug = title.lower().replace(' ', '-').replace('_', '-')
+        slug = re.sub(r'[^\w\-]', '', slug)
+        
+        # 处理日期
+        date_str = front_matter.get('date', datetime.datetime.now().strftime('%Y-%m-%d'))
+        if ' ' in date_str:
+            date_str = date_str.split(' ')[0]  # 只取日期部分
+        
+        # 处理标签
+        tags = front_matter.get('tags', [])
+        if isinstance(tags, str):
+            # 处理字符串格式的标签
+            tags = [tag.strip() for tag in tags.replace('[', '').replace(']', '').split(',')]
+        
+        # 处理分类
+        categories = front_matter.get('categories', [])
+        if isinstance(categories, str):
+            categories = [cat.strip() for cat in categories.replace('[', '').replace(']', '').split(',')]
+        
+        # 提取摘要
+        excerpt = front_matter.get('excerpt', '')
+        if not excerpt:
+            # 从内容中提取第一段作为摘要
+            content_without_frontmatter = content.split('---', 2)[-1] if '---' in content else content
+            first_paragraph = re.search(r'^# .+\n\n(.+?)(?:\n\n|\n#)', content_without_frontmatter, re.DOTALL)
+            if first_paragraph:
+                excerpt = clean_html_tags(first_paragraph.group(1))[:200]
+            else:
+                excerpt = "暂无摘要"
+        
+        return {
+            'slug': slug,
+            'title': title,
+            'date': date_str,
+            'abstract': excerpt,
+            'tags': tags,
+            'categories': categories,
+            'path': f"./post/{md_file.stem}/",
+            'source_file': str(md_file),
+            'type': 'markdown'
+        }
+    except Exception as e:
+        print(f"❌ 解析 Markdown 文件 {md_file.name} 失败: {e}")
+        return None
+
+def parse_front_matter(content):
+    """解析 YAML front matter"""
+    if not content.startswith('---'):
+        return None
+    
+    try:
+        # 找到 front matter 的结束位置
+        end_marker = content.find('---', 3)
+        if end_marker == -1:
+            return None
+        
+        front_matter_text = content[3:end_marker].strip()
+        
+        # 简单的 YAML 解析（处理基本格式）
+        front_matter = {}
+        for line in front_matter_text.split('\n'):
+            line = line.strip()
+            if ':' in line:
+                key, value = line.split(':', 1)
+                key = key.strip()
+                value = value.strip()
+                
+                # 处理数组格式
+                if value.startswith('[') and value.endswith(']'):
+                    # 移除方括号并分割
+                    array_content = value[1:-1]
+                    if array_content.strip():
+                        front_matter[key] = [item.strip() for item in array_content.split(',')]
+                    else:
+                        front_matter[key] = []
+                else:
+                    # 移除引号
+                    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+                        value = value[1:-1]
+                    front_matter[key] = value
+        
+        return front_matter
+    except Exception as e:
+        print(f"⚠️  解析 front matter 失败: {e}")
+        return None
 
 def extract_article_info(html_file, article_slug):
     """从HTML文件中提取文章信息"""

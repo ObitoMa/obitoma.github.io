@@ -15,11 +15,171 @@
 
 <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
 <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
 
 
 
     <meta name="description" content="温故而知新">
     
+    <style>
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-size: 16px;
+      }
+      
+      .article-list {
+        display: grid;
+        gap: 15px;
+        margin-bottom: 40px;
+      }
+      
+      .article-card {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+      }
+      
+      .article-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      }
+      
+      .article-title {
+        font-size: 1.2em;
+        margin-bottom: 8px;
+        color: #333;
+        text-decoration: none;
+      }
+      
+      .article-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+        font-size: 0.9em;
+        color: #666;
+      }
+      
+      .article-excerpt {
+        color: #555;
+        line-height: 1.6;
+        font-size: 0.9em;
+      }
+      
+      .article-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      
+      .tag {
+        background: #007bff;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+      }
+      
+      .article-content {
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.6;
+      }
+      
+      .article-content h1, .article-content h2, .article-content h3 {
+        color: #333;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+      }
+      
+      .article-content h1 {
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+      }
+      
+      .article-content pre {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 1.5rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1.5rem 0;
+        position: relative;
+      }
+      
+      .article-content code {
+        background: #f1f5f9;
+        color: #e11d48;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      }
+      
+      .article-content pre code {
+        background: transparent;
+        color: inherit;
+        padding: 0;
+      }
+      
+      /* 代码块复制按钮 */
+      .article-content pre {
+        position: relative !important;
+      }
+      
+      .code-copy-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #e2e8f0;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        opacity: 0;
+        z-index: 10;
+      }
+      
+      .article-content pre:hover .code-copy-btn {
+        opacity: 1;
+      }
+      
+      .code-copy-btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+      
+      .code-copy-btn.copied {
+        background: #10b981;
+        border-color: #059669;
+        color: white;
+      }
+      
+      .back-btn {
+        display: inline-block;
+        margin-bottom: 20px;
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+      
+      .back-btn:hover {
+        background: #0056b3;
+        color: white;
+        text-decoration: none;
+      }
+    </style>
   </head>
   <body>
     <div id="app" class="main">
@@ -83,78 +243,15 @@
     <div class="site-footer">
       Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a> | <a class="rss" href="./atom.xml" target="_blank">RSS</a>
     </div>
-    <div class="markdown-tools">
-      <a href="./markdown-display.html" class="markdown-btn" title="Markdown 文章展示器">
-        <span class="btn-icon">📝</span>
-        <span class="btn-text">Markdown 工具</span>
-      </a>
-    </div>
   </div>
 </div>
 
 
       <div class="main-container">
         <div class="content-container" data-aos="fade-up">
-            <article class="post-item">
-              <div class="left">
-                <a href="./post/使用Python实现：本地IPV4映射公网IPV6端口/">
-                  <h2 class="post-title">使用Python实现：本地IPV4映射公网IPV6端口</h2>
-                </a>
-                <div class="post-date">
-                  2025-10-21
-                </div>
-                <div class="post-abstract">
-                  <p>下面直接贴代码</p>
-                </div>
-              </div>
-            </article>
-        
-            <article class="post-item">
-              <div class="left">
-                <a href="./post/python3实现：进程遇Error定时重启/">
-                  <h2 class="post-title">python3实现：进程遇Error定时重启</h2>
-                </a>
-                <div class="post-date">
-                  2025-10-21
-                </div>
-                <div class="post-abstract">
-                  <p>使用python实现进程的自动重启</p>
-                </div>
-              </div>
-            </article>
-        
-            <article class="post-item">
-              <div class="left">
-                <a href="./post/markdown-测试/">
-                  <h2 class="post-title">Markdown 测试文章</h2>
-                </a>
-                <div class="post-date">
-                  2025-10-21
-                </div>
-                <div class="post-abstract">
-                  <p>这是一篇用于测试 Markdown 渲染效果的示例文章。</p>
-                </div>
-              </div>
-            </article>
-        
-            <article class="post-item">
-              <div class="left">
-                <a href="./post/about/">
-                  <h2 class="post-title">关于</h2>
-                </a>
-                <div class="post-date">
-                  2019-01-25
-                </div>
-                <div class="post-abstract">
-                  <p>暂无摘要</p>
-                </div>
-              </div>
-            </article>
-        <div class="pagination-container">
-  
-  
+          <div id="markdownContent">
+            <div class="loading">正在加载文章列表...</div>
 </div>
-
         </div>
       </div>
     </div>
@@ -164,11 +261,239 @@
 
 AOS.init();
 
+// 配置 marked
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+  highlight: function(code, lang) {
+    if (lang && Prism.languages[lang]) {
+      return Prism.highlight(code, Prism.languages[lang], lang);
+    }
+    return code;
+  }
+});
+
 var app = new Vue({
   el: '#app',
   data: {
     menuVisible: false,
+    articles: [],
+    currentArticle: null
   },
+  mounted() {
+    this.loadArticles();
+  },
+  methods: {
+    async loadArticles() {
+      try {
+        const response = await fetch('./post/');
+        if (!response.ok) {
+          throw new Error('无法访问 post 目录');
+        }
+        
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        // 查找 Markdown 文件链接
+        const links = doc.querySelectorAll('a[href$=".md"], a[href$=".markdown"]');
+        this.articles = [];
+        
+        // 加载每个文章的前置信息
+        for (const link of links) {
+          try {
+            const articleUrl = './post/' + link.textContent.trim();
+            const articleResponse = await fetch(articleUrl);
+            if (articleResponse.ok) {
+              const markdown = await articleResponse.text();
+              const frontMatter = this.parseFrontMatter(markdown);
+              
+              this.articles.push({
+                name: link.textContent.trim(),
+                url: articleUrl,
+                title: frontMatter.title || link.textContent.trim(),
+                date: frontMatter.date || new Date().toISOString().split('T')[0],
+                tags: frontMatter.tags || [],
+                excerpt: frontMatter.excerpt || ''
+              });
+            }
+          } catch (error) {
+            console.warn('无法加载文章:', link.textContent.trim(), error);
+            // 如果无法加载文章内容，仍然添加到列表中
+            this.articles.push({
+              name: link.textContent.trim(),
+              url: './post/' + link.textContent.trim(),
+              title: link.textContent.trim(),
+              date: new Date().toISOString().split('T')[0],
+              tags: [],
+              excerpt: ''
+            });
+          }
+        }
+        
+        if (this.articles.length === 0) {
+          document.getElementById('markdownContent').innerHTML = 
+            '<div class="loading">没有找到 Markdown 文件</div>';
+          return;
+        }
+        
+        // 按日期排序（最新的在前）
+        this.articles.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateB - dateA;
+        });
+        
+        // 显示文章列表
+        this.displayArticleList();
+        
+      } catch (error) {
+        console.error('加载文章列表失败:', error);
+        document.getElementById('markdownContent').innerHTML = 
+          '<div class="loading">加载文章列表失败: ' + error.message + '</div>';
+      }
+    },
+    
+    displayArticleList() {
+      const html = `
+        <div class="article-list">
+          ${this.articles.map(article => `
+            <div class="article-card" onclick="app.loadArticle('${article.url}')">
+              <div class="article-title">${article.title}</div>
+              <div class="article-meta">
+                <span>📅 ${article.date}</span>
+                <span>🏷️ ${article.tags.join(', ')}</span>
+              </div>
+              <div class="article-excerpt">${article.excerpt || '点击查看文章内容'}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      document.getElementById('markdownContent').innerHTML = html;
+    },
+    
+    async loadArticle(url) {
+      try {
+        document.getElementById('markdownContent').innerHTML = 
+          '<div class="loading">正在加载文章...</div>';
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('无法加载文章');
+        }
+        
+        const markdown = await response.text();
+        
+        // 解析 front matter
+        const frontMatter = this.parseFrontMatter(markdown);
+        const content = markdown.split('---').slice(2).join('---').trim();
+        
+        // 渲染 Markdown
+        const htmlContent = marked.parse(content);
+        
+        // 显示文章
+        const articleHtml = `
+          <a href="javascript:void(0)" onclick="app.loadArticles()" class="back-btn">← 返回列表</a>
+          <div class="article-content">
+            ${frontMatter.title ? `<h1>${frontMatter.title}</h1>` : ''}
+            ${frontMatter.date ? `<div class="article-meta">📅 ${frontMatter.date}</div>` : ''}
+            ${frontMatter.tags ? `
+              <div class="article-tags">
+                ${frontMatter.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+              </div>
+            ` : ''}
+            ${htmlContent}
+          </div>
+        `;
+        
+        document.getElementById('markdownContent').innerHTML = articleHtml;
+        
+        // 添加代码块复制按钮
+        this.addCopyButtons();
+        
+      } catch (error) {
+        console.error('加载文章失败:', error);
+        document.getElementById('markdownContent').innerHTML = 
+          '<div class="loading">加载文章失败: ' + error.message + '</div>';
+      }
+    },
+    
+    parseFrontMatter(content) {
+      if (!content.startsWith('---')) {
+        return {};
+      }
+      
+      const endMarker = content.indexOf('---', 3);
+      if (endMarker === -1) {
+        return {};
+      }
+      
+      const frontMatterText = content.substring(3, endMarker).trim();
+      const frontMatter = {};
+      
+      frontMatterText.split('\n').forEach(line => {
+        const colonIndex = line.indexOf(':');
+        if (colonIndex > 0) {
+          const key = line.substring(0, colonIndex).trim();
+          let value = line.substring(colonIndex + 1).trim();
+          
+          // 处理数组格式
+          if (value.startsWith('[') && value.endsWith(']')) {
+            const arrayContent = value.slice(1, -1);
+            if (arrayContent.trim()) {
+              frontMatter[key] = arrayContent.split(',').map(item => item.trim());
+            } else {
+              frontMatter[key] = [];
+            }
+          } else {
+            // 移除引号
+            if ((value.startsWith('"') && value.endsWith('"')) || 
+                (value.startsWith("'") && value.endsWith("'"))) {
+              value = value.slice(1, -1);
+            }
+            frontMatter[key] = value;
+          }
+        }
+      });
+      
+      return frontMatter;
+    },
+    
+    addCopyButtons() {
+      const codeBlocks = document.querySelectorAll('.article-content pre');
+      codeBlocks.forEach(block => {
+        if (block.querySelector('.code-copy-btn')) return;
+        
+        const button = document.createElement('button');
+        button.className = 'code-copy-btn';
+        button.textContent = '复制';
+        button.onclick = () => this.copyCode(block, button);
+        
+        block.appendChild(button);
+      });
+    },
+    
+    copyCode(block, button) {
+      const code = block.querySelector('code');
+      const text = code ? code.textContent : block.textContent;
+      
+      navigator.clipboard.writeText(text).then(() => {
+        button.textContent = '已复制';
+        button.classList.add('copied');
+        
+        setTimeout(() => {
+          button.textContent = '复制';
+          button.classList.remove('copied');
+        }, 2000);
+      }).catch(err => {
+        console.error('复制失败:', err);
+        button.textContent = '复制失败';
+        setTimeout(() => {
+          button.textContent = '复制';
+        }, 2000);
+      });
+    }
+  }
 })
 
 </script>
